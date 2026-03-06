@@ -35,7 +35,7 @@ using namespace llvm;
 // Only lightweight passes are on by default to avoid OOM.
 static cl::opt<bool> s_obf_split("split", cl::init(true), cl::desc("SplitBasicBlock: split_num=3(init)"));
 static cl::opt<bool> s_obf_sobf("sobf", cl::init(true), cl::desc("String Obfuscation"));
-static cl::opt<bool> s_obf_fla("fla", cl::init(false), cl::desc("Flattening (disabled, known issues)"));
+static cl::opt<bool> s_obf_fla("fla", cl::init(true), cl::desc("Flattening"));
 static cl::opt<bool> s_obf_sub("sub", cl::init(true), cl::desc("Substitution: sub_loop"));
 static cl::opt<bool> s_obf_bcf("bcf", cl::init(false), cl::desc("BogusControlFlow (disabled, high memory usage)"));
 static cl::opt<bool> s_obf_ibr("ibr", cl::init(false), cl::desc("Indirect Branch"));
