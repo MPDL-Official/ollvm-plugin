@@ -29,12 +29,12 @@ jobs:
       - name: Build plugin
         run: |
           NDK_LLVM=$ANDROID_HOME/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64
-          echo "--- Checking NDK LLVM cmake config ---"
-          ls $NDK_LLVM/lib/cmake/llvm/LLVMConfig.cmake || echo "WARNING: No cmake config in NDK"
+          echo "--- NDK LLVM structure ---"
+          ls $NDK_LLVM/include/llvm/Pass.h && echo "Headers OK" || echo "No LLVM headers!"
+          ls $NDK_LLVM/lib/libLLVM* 2>/dev/null || echo "No libLLVM found"
           mkdir build && cd build
           cmake .. \
             -DNDK_LLVM=$NDK_LLVM \
-            -DLLVM_DIR=$NDK_LLVM/lib/cmake/llvm \
             -DCMAKE_C_COMPILER=$NDK_LLVM/bin/clang \
             -DCMAKE_CXX_COMPILER=$NDK_LLVM/bin/clang++ \
             -DCMAKE_BUILD_TYPE=Release
