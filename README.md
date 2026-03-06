@@ -1,37 +1,37 @@
-# ollvm-plugin
+# ollvm-clang
 
-OLLVM (Obfuscator-LLVM) pass plugin for Android NDK (LLVM 19).
+Build a custom LLVM/Clang with OLLVM obfuscation passes baked in.
 
-Builds as a shared library (`libObfuscation.so`) that can be loaded by NDK's clang via `-fpass-plugin=`.
+## What this does
+
+Downloads LLVM 19.1.7 source, patches it with OLLVM obfuscation passes, and builds a custom `clang` binary. The resulting clang supports `-mllvm -sobf`, `-mllvm -fla`, etc. natively.
 
 ## Obfuscation passes
 
-- `bcf` - Bogus Control Flow
-- `fla` - Control Flow Flattening
-- `sub` - Instruction Substitution
-- `sobf` - String Encryption
-- `split` - Basic Block Splitting
-- `ibr` - Indirect Branch
-- `icall` - Indirect Call
-- `igv` - Indirect Global Variable
+| Flag | Description |
+|------|-------------|
+| `-mllvm -sobf` | String Encryption |
+| `-mllvm -fla` | Control Flow Flattening |
+| `-mllvm -sub` | Instruction Substitution |
+| `-mllvm -bcf` | Bogus Control Flow |
+| `-mllvm -split` | Basic Block Splitting |
+| `-mllvm -icall` | Indirect Call |
+| `-mllvm -ibr` | Indirect Branch |
+| `-mllvm -igv` | Indirect Global Variable |
 
-## Build
+## Usage with Android NDK
 
-```bash
-NDK_LLVM=$ANDROID_HOME/ndk/<version>/toolchains/llvm/prebuilt/linux-x86_64
-
-mkdir build && cd build
-cmake .. -DLLVM_DIR=$NDK_LLVM -DCMAKE_BUILD_TYPE=Release
-make -j$(nproc)
-```
-
-Output: `build/libObfuscation.so`
-
-## Usage
+Replace NDK's clang with the custom-built one:
 
 ```bash
-clang -fpass-plugin=libObfuscation.so -mllvm -sobf -mllvm -fla ...
+NDK_LLVM=$ANDROID_HOME/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64
+# Backup original
+cp $NDK_LLVM/bin/clang-19 $NDK_LLVM/bin/clang-19.bak
+# Replace with OLLVM clang
+cp ollvm-clang/clang-19 $NDK_LLVM/bin/clang-19
 ```
+
+Then use standard NDK build with `-mllvm` flags.
 
 ## Credits
 

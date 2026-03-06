@@ -1,4 +1,4 @@
-name: Build OLLVM Plugin
+name: Build OLLVM Clang
 
 on:
   push:
@@ -18,55 +18,78 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
-
-      - name: Install NDK
-        run: sdkmanager "ndk;28.2.13676358"
-
-      - name: Install LLVM 19 dev headers
+      - name: Free disk space
         run: |
-          wget -qO- https://apt.llvm.org/llvm-snapshot.gpg.key | sudo apt-key add -
-          echo "deb http://apt.llvm.org/jammy/ llvm-toolchain-jammy-19 main" | sudo tee /etc/apt/sources.list.d/llvm-19.list
-          sudo apt-get update
-          sudo apt-get install -y llvm-19-dev
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /usr/local/share/boost
+          sudo apt-get clean
+          df -h
 
-      - name: Print versions
-        run: |
-          NDK_LLVM=$ANDROID_HOME/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64
-          echo "NDK clang:"
-          $NDK_LLVM/bin/clang --version
-          echo "System LLVM 19 headers:"
-          ls /usr/lib/llvm-19/include/llvm/Pass.h
+      - name: Install build dependencies
+        run: sudo apt-get install -y cmake ninja-build python3
 
-      - name: Build plugin
-        run: |
-          NDK_LLVM=$ANDROID_HOME/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64
-          mkdir build && cd build
-          cmake .. \
-            -DLLVM_DIR=/usr/lib/llvm-19/lib/cmake/llvm \
-            -DCMAKE_C_COMPILER=$NDK_LLVM/bin/clang \
-            -DCMAKE_CXX_COMPILER=$NDK_LLVM/bin/clang++ \
-            -DCMAKE_BUILD_TYPE=Release
-          make -j$(nproc)
+      - name: Cache LLVM build
+        uses: actions/cache@v4
+        id: llvm-cache
+        with:
+          path: llvm-project/build
+          key: llvm-build-${{ hashFiles('Obfuscation/**', 'patches/**') }}
 
-      - name: Test plugin
+      - name: Download LLVM 19.1.7 source
+        if: steps.llvm-cache.outputs.cache-hit != 'true'
         run: |
-          NDK_LLVM=$ANDROID_HOME/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64
-          echo "--- Test: compile with plugin (host target) ---"
-          $NDK_LLVM/bin/clang -fpass-plugin=build/libObfuscation.so -O1 -c test/test.c -o /dev/null
-          echo "--- Test: compile for aarch64-android ---"
-          $NDK_LLVM/bin/clang --target=aarch64-none-linux-android23 --sysroot=$NDK_LLVM/sysroot -fpass-plugin=build/libObfuscation.so -O1 -c test/test.c -o /dev/null
-          echo "--- All tests passed ---"
+          wget -q https://github.com/llvm/llvm-project/releases/download/llvmorg-19.1.7/llvm-project-19.1.7.src.tar.xz
+          tar xf llvm-project-19.1.7.src.tar.xz
+          mv llvm-project-19.1.7.src llvm-project
+          rm llvm-project-19.1.7.src.tar.xz
+
+      - name: Apply OLLVM patches
+        if: steps.llvm-cache.outputs.cache-hit != 'true'
+        run: |
+          PASSES_DIR=llvm-project/llvm/lib/Passes
+          echo "--- Copying Obfuscation sources ---"
+          cp -r Obfuscation $PASSES_DIR/
+          echo "--- Patching PassBuilder.cpp ---"
+          cp patches/PassBuilder.cpp $PASSES_DIR/PassBuilder.cpp
+          echo "--- Patching CMakeLists.txt ---"
+          cp patches/CMakeLists.txt $PASSES_DIR/CMakeLists.txt
+
+      - name: Build LLVM + Clang
+        if: steps.llvm-cache.outputs.cache-hit != 'true'
+        run: |
+          cd llvm-project
+          cmake -G Ninja -B build -S llvm \
+            -DLLVM_ENABLE_PROJECTS=clang \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DLLVM_TARGETS_TO_BUILD="AArch64;X86" \
+            -DLLVM_BUILD_TOOLS=OFF \
+            -DLLVM_BUILD_UTILS=OFF \
+            -DLLVM_INCLUDE_TESTS=OFF \
+            -DLLVM_INCLUDE_EXAMPLES=OFF \
+            -DLLVM_INCLUDE_BENCHMARKS=OFF \
+            -DLLVM_INCLUDE_DOCS=OFF \
+            -DLLVM_ENABLE_BINDINGS=OFF \
+            -DLLVM_ENABLE_TERMINFO=OFF \
+            -DLLVM_ENABLE_ZLIB=OFF \
+            -DLLVM_ENABLE_ZSTD=OFF
+          ninja -C build clang -j$(nproc)
+
+      - name: Package clang binaries
+        run: |
+          mkdir -p dist
+          cp llvm-project/build/bin/clang-19 dist/
+          cd dist
+          ln -s clang-19 clang
+          ln -s clang-19 clang++
+          tar czf ollvm-clang.tar.gz *
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: libObfuscation
-          path: build/libObfuscation.so
+          name: ollvm-clang
+          path: dist/ollvm-clang.tar.gz
 
       - name: Publish to Releases
         if: startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v2
         with:
-          files: build/libObfuscation.so
+          files: dist/ollvm-clang.tar.gz
