@@ -31,6 +31,12 @@
 
 using namespace llvm;
 
+// Required by LLVM ABI breaking checks - the system LLVM headers expect this
+// symbol but NDK clang doesn't export it.
+namespace llvm {
+  int DisableABIBreakingChecks = 0;
+}
+
 // Passes enabled by default when plugin is loaded.
 // Only lightweight passes are on by default to avoid OOM.
 static cl::opt<bool> s_obf_split("split", cl::init(false), cl::desc("SplitBasicBlock: split_num=3(init)"));
