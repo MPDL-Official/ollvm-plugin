@@ -12,12 +12,12 @@ list(APPEND CMAKE_MODULE_PATH "${LLVM_CMAKE_DIR}")
 include(AddLLVM)
 
 message(STATUS "Found LLVM ${LLVM_PACKAGE_VERSION} at ${LLVM_DIR}")
+message(STATUS "LLVM library dir: ${LLVM_LIBRARY_DIRS}")
 
 set(CMAKE_CXX_STANDARD 17)
 
 add_definitions(${LLVM_DEFINITIONS})
 include_directories(${LLVM_INCLUDE_DIRS})
-link_directories(${LLVM_LIBRARY_DIRS})
 
 set(OBFUSCATION_SRS
   Obfuscation/Utils.cpp
@@ -35,14 +35,25 @@ set(OBFUSCATION_SRS
   plugin_reg.cpp
 )
 
-set(CMAKE_SKIP_BUILD_RPATH ON)
 add_library(Obfuscation SHARED ${OBFUSCATION_SRS})
 target_include_directories(Obfuscation PRIVATE ${CMAKE_SOURCE_DIR})
 target_include_directories(Obfuscation PRIVATE ${CMAKE_SOURCE_DIR}/Obfuscation)
 set_target_properties(Obfuscation PROPERTIES
   COMPILE_FLAGS "-fno-rtti -fPIC"
-  LINK_FLAGS "-Wl,--unresolved-symbols=ignore-in-object-files"
 )
-# Do NOT link against LLVM - symbols are provided by the host clang at dlopen time.
-# --unresolved-symbols=ignore-in-object-files allows the build to succeed with
-# undefined symbols (like NoFolder vtable) that will be resolved at load time.
+
+# Link LLVM static libraries with --exclude-libs ALL.
+# This embeds the needed LLVM code (vtables, cl::opt, IRBuilder, etc.)
+# into the plugin, but marks ALL static lib symbols as LOCAL/hidden.
+# This prevents symbol conflicts with the host clang (which has its own
+# statically-linked LLVM). At runtime:
+#   - Plugin uses its own (hidden) copies for internal stuff (vtables, cl::opt)
+#   - Host clang provides the pass pipeline infrastructure via dlopen global scope
+target_link_options(Obfuscation PRIVATE
+  -Wl,--exclude-libs,ALL
+  -Wl,--unresolved-symbols=ignore-in-object-files
+)
+
+# Collect all needed LLVM static libraries
+file(GLOB LLVM_STATIC_LIBS "${LLVM_LIBRARY_DIRS}/libLLVM*.a")
+target_link_libraries(Obfuscation PRIVATE ${LLVM_STATIC_LIBS} -lpthread -ldl -lz -ltinfo)
