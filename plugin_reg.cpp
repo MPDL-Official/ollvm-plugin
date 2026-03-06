@@ -31,15 +31,15 @@
 
 using namespace llvm;
 
-// All passes enabled by default when plugin is loaded.
-// Loading the plugin = enabling obfuscation.
+// Passes enabled by default when plugin is loaded.
+// Only lightweight passes are on by default to avoid OOM.
 static cl::opt<bool> s_obf_split("split", cl::init(true), cl::desc("SplitBasicBlock: split_num=3(init)"));
 static cl::opt<bool> s_obf_sobf("sobf", cl::init(true), cl::desc("String Obfuscation"));
-static cl::opt<bool> s_obf_fla("fla", cl::init(false), cl::desc("Flattening (disabled by default, known issues)"));
+static cl::opt<bool> s_obf_fla("fla", cl::init(false), cl::desc("Flattening (disabled, known issues)"));
 static cl::opt<bool> s_obf_sub("sub", cl::init(true), cl::desc("Substitution: sub_loop"));
-static cl::opt<bool> s_obf_bcf("bcf", cl::init(true), cl::desc("BogusControlFlow: application number -bcf_loop=x must be x > 0"));
-static cl::opt<bool> s_obf_ibr("ibr", cl::init(true), cl::desc("Indirect Branch"));
-static cl::opt<bool> s_obf_igv("igv", cl::init(true), cl::desc("Indirect Global Variable"));
+static cl::opt<bool> s_obf_bcf("bcf", cl::init(false), cl::desc("BogusControlFlow (disabled, high memory usage)"));
+static cl::opt<bool> s_obf_ibr("ibr", cl::init(false), cl::desc("Indirect Branch"));
+static cl::opt<bool> s_obf_igv("igv", cl::init(false), cl::desc("Indirect Global Variable"));
 static cl::opt<bool> s_obf_icall("icall", cl::init(true), cl::desc("Indirect Call"));
 static cl::opt<bool> s_obf_fn_name_cmd("fncmd", cl::init(false), cl::desc("use function name control obfuscation(_ + command + _ | example: function_fla_bcf_)"));
 
