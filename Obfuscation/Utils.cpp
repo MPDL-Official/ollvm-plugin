@@ -10,12 +10,10 @@
  *
  */
 #include "Utils.h"
-#include "llvm/IR/IRBuilder.h"
 #include "llvm/IR/InstIterator.h"
 #include "llvm/IR/IntrinsicInst.h"
 #include "llvm/IR/MDBuilder.h"
 #include "llvm/IR/Module.h"
-#include "llvm/IR/IRBuilder.h"
 #include "llvm/Support/raw_ostream.h"
 #include "llvm/Transforms/Utils/Local.h"
 #include <algorithm>
@@ -415,12 +413,12 @@ void FixBasicBlockConstantExpr(BasicBlock *BB) {
     }
     for (unsigned i = 0; i < I.getNumOperands(); i++) {
       if (ConstantExpr *C = dyn_cast<ConstantExpr>(I.getOperand(i))) {
-        Instruction *InsertPt = &I;
-        IRBuilder<> IRB(InsertPt);
+        Instruction *Inst = C->getAsInstruction();
         if (isa<PHINode>(I)) {
-          IRB.SetInsertPoint(FunctionInsertPt);
+          Inst->insertBefore(FunctionInsertPt);
+        } else {
+          Inst->insertBefore(&I);
         }
-        Instruction *Inst = IRB.Insert(C->getAsInstruction());
         I.setOperand(i, Inst);
       }
     }

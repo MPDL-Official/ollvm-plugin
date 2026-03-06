@@ -50,6 +50,15 @@ jobs:
             -DCMAKE_BUILD_TYPE=Release
           make -j$(nproc)
 
+      - name: Test plugin
+        run: |
+          NDK_LLVM=$ANDROID_HOME/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64
+          echo "--- Test: compile with plugin (host target) ---"
+          $NDK_LLVM/bin/clang -fpass-plugin=build/libObfuscation.so -O1 -c test/test.c -o /dev/null
+          echo "--- Test: compile for aarch64-android ---"
+          $NDK_LLVM/bin/clang --target=aarch64-none-linux-android23 --sysroot=$NDK_LLVM/sysroot -fpass-plugin=build/libObfuscation.so -O1 -c test/test.c -o /dev/null
+          echo "--- All tests passed ---"
+
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
