@@ -41,7 +41,8 @@ target_include_directories(Obfuscation PRIVATE ${CMAKE_SOURCE_DIR})
 target_include_directories(Obfuscation PRIVATE ${CMAKE_SOURCE_DIR}/Obfuscation)
 set_target_properties(Obfuscation PROPERTIES
   COMPILE_FLAGS "-fno-rtti -fPIC"
-  LINK_FLAGS "-Wl,--allow-shlib-undefined"
+  LINK_FLAGS "-Wl,--unresolved-symbols=ignore-in-object-files"
 )
 # Do NOT link against LLVM - symbols are provided by the host clang at dlopen time.
-# Linking libLLVM.so here would cause duplicate symbols and memory corruption.
+# --unresolved-symbols=ignore-in-object-files allows the build to succeed with
+# undefined symbols (like NoFolder vtable) that will be resolved at load time.
