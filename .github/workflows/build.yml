@@ -21,20 +21,27 @@ jobs:
       - name: Install NDK
         run: sdkmanager "ndk;28.2.13676358"
 
-      - name: Print clang version
+      - name: Install LLVM 19 dev headers
+        run: |
+          wget -qO- https://apt.llvm.org/llvm-snapshot.gpg.key | sudo apt-key add -
+          echo "deb http://apt.llvm.org/jammy/ llvm-toolchain-jammy-19 main" | sudo tee /etc/apt/sources.list.d/llvm-19.list
+          sudo apt-get update
+          sudo apt-get install -y llvm-19-dev
+
+      - name: Print versions
         run: |
           NDK_LLVM=$ANDROID_HOME/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64
+          echo "NDK clang:"
           $NDK_LLVM/bin/clang --version
+          echo "System LLVM 19 headers:"
+          ls /usr/lib/llvm-19/include/llvm/Pass.h
 
       - name: Build plugin
         run: |
           NDK_LLVM=$ANDROID_HOME/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64
-          echo "--- NDK LLVM structure ---"
-          ls $NDK_LLVM/include/llvm/Pass.h && echo "Headers OK" || echo "No LLVM headers!"
-          ls $NDK_LLVM/lib/libLLVM* 2>/dev/null || echo "No libLLVM found"
           mkdir build && cd build
           cmake .. \
-            -DNDK_LLVM=$NDK_LLVM \
+            -DLLVM_DIR=/usr/lib/llvm-19/lib/cmake/llvm \
             -DCMAKE_C_COMPILER=$NDK_LLVM/bin/clang \
             -DCMAKE_CXX_COMPILER=$NDK_LLVM/bin/clang++ \
             -DCMAKE_BUILD_TYPE=Release
