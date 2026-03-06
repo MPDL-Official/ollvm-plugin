@@ -1,16 +1,18 @@
 cmake_minimum_required(VERSION 3.20)
+
+# NDK_LLVM must be passed via -DNDK_LLVM=<path>
+# Compilers must be set BEFORE project() via -DCMAKE_C_COMPILER / -DCMAKE_CXX_COMPILER
 project(ollvm-plugin)
 
-message(STATUS "LLVM_DIR: ${LLVM_DIR}")
+message(STATUS "NDK_LLVM: ${NDK_LLVM}")
 
-set(CMAKE_C_COMPILER ${LLVM_DIR}/bin/clang)
-set(CMAKE_CXX_COMPILER ${LLVM_DIR}/bin/clang++)
-list(APPEND CMAKE_PREFIX_PATH "${LLVM_DIR}/lib/cmake/llvm")
-
+set(LLVM_DIR "${NDK_LLVM}/lib/cmake/llvm")
 find_package(LLVM REQUIRED CONFIG)
 
 list(APPEND CMAKE_MODULE_PATH "${LLVM_CMAKE_DIR}")
 include(AddLLVM)
+
+message(STATUS "Found LLVM ${LLVM_PACKAGE_VERSION} at ${LLVM_DIR}")
 
 set(CMAKE_CXX_STANDARD 17)
 
