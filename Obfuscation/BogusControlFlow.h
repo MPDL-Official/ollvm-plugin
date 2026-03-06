@@ -20,7 +20,6 @@
 #include "llvm/Support/CommandLine.h"
 #include "llvm/Transforms/IPO.h"
 #include "llvm/IR/IRBuilder.h"
-#include "llvm/IR/NoFolder.h"
 #include "llvm/Support/TargetSelect.h"
 #include "llvm/Transforms/Utils/Local.h"
 // System libs

@@ -15,7 +15,7 @@
 #include "llvm/IR/IntrinsicInst.h"
 #include "llvm/IR/MDBuilder.h"
 #include "llvm/IR/Module.h"
-#include "llvm/IR/NoFolder.h"
+#include "llvm/IR/IRBuilder.h"
 #include "llvm/Support/raw_ostream.h"
 #include "llvm/Transforms/Utils/Local.h"
 #include <algorithm>
@@ -416,7 +416,7 @@ void FixBasicBlockConstantExpr(BasicBlock *BB) {
     for (unsigned i = 0; i < I.getNumOperands(); i++) {
       if (ConstantExpr *C = dyn_cast<ConstantExpr>(I.getOperand(i))) {
         Instruction *InsertPt = &I;
-        IRBuilder<NoFolder> IRB(InsertPt);
+        IRBuilder<> IRB(InsertPt);
         if (isa<PHINode>(I)) {
           IRB.SetInsertPoint(FunctionInsertPt);
         }
