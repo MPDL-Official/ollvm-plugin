@@ -1,0 +1,77 @@
+name: Test OLLVM Clang
+
+on:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install NDK
+        run: sdkmanager "ndk;28.2.13676358"
+
+      - name: Download OLLVM clang from release
+        run: |
+          mkdir -p ollvm-clang
+          wget -q https://github.com/MPDL-Official/ollvm-plugin/releases/download/v1.0.0/ollvm-clang.tar.gz
+          tar xzf ollvm-clang.tar.gz -C ollvm-clang
+
+      - name: Test OLLVM passes
+        run: |
+          CLANG=ollvm-clang/clang-19
+          chmod +x $CLANG
+          NDK_SYSROOT=$ANDROID_HOME/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot
+
+          echo "--- clang version ---"
+          $CLANG --version
+
+          echo "--- Test: basic compile (host) ---"
+          $CLANG -O1 -c test/test.c -o /dev/null
+
+          for pass in sobf fla sub bcf split icall ibr igv; do
+            echo "--- Test: -mllvm -$pass ---"
+            $CLANG -O1 -mllvm -$pass -c test/test.c -o /dev/null
+          done
+
+          echo "--- Test: all passes combined (host) ---"
+          $CLANG -O1 -mllvm -sobf -mllvm -fla -mllvm -sub -mllvm -split -mllvm -icall -mllvm -ibr -mllvm -igv -c test/test.c -o /dev/null
+
+          echo "--- Test: cross-compile aarch64-android ---"
+          $CLANG --target=aarch64-none-linux-android23 --sysroot=$NDK_SYSROOT \
+            -O1 -mllvm -sobf -mllvm -fla -mllvm -sub -mllvm -split -mllvm -icall -mllvm -ibr -mllvm -igv \
+            -c test/test.c -o /dev/null
+
+          echo "--- Test: cross-compile x86_64-android ---"
+          $CLANG --target=x86_64-none-linux-android23 --sysroot=$NDK_SYSROOT \
+            -O1 -mllvm -sobf -mllvm -fla -mllvm -sub \
+            -c test/test.c -o /dev/null
+
+          echo "=== ALL TESTS PASSED ==="
+
+      - name: Test NDK replacement
+        run: |
+          NDK_LLVM=$ANDROID_HOME/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64
+          echo "--- Original NDK clang ---"
+          $NDK_LLVM/bin/clang-19 --version
+
+          echo "--- Replacing NDK clang ---"
+          cp ollvm-clang/clang-19 $NDK_LLVM/bin/clang-19
+          chmod +x $NDK_LLVM/bin/clang-19
+
+          echo "--- Replaced NDK clang ---"
+          $NDK_LLVM/bin/clang-19 --version
+
+          echo "--- Test: NDK clang++ with OLLVM ---"
+          $NDK_LLVM/bin/clang++ --target=aarch64-none-linux-android23 \
+            --sysroot=$NDK_LLVM/sysroot \
+            -O1 -mllvm -sobf -mllvm -fla -mllvm -sub \
+            -std=gnu++17 -c test/test.c -o /dev/null
+
+          echo "=== NDK REPLACEMENT TEST PASSED ==="
