@@ -73,6 +73,36 @@ jobs:
             -DLLVM_ENABLE_ZSTD=OFF
           ninja -C build clang -j$(nproc)
 
+      - name: Test OLLVM clang
+        run: |
+          CLANG=llvm-project/build/bin/clang
+          echo "--- clang version ---"
+          $CLANG --version
+          echo "--- Test: basic compile ---"
+          $CLANG -O1 -c test/test.c -o /dev/null
+          echo "--- Test: -mllvm -sobf ---"
+          $CLANG -O1 -mllvm -sobf -c test/test.c -o /dev/null
+          echo "--- Test: -mllvm -fla ---"
+          $CLANG -O1 -mllvm -fla -c test/test.c -o /dev/null
+          echo "--- Test: -mllvm -sub ---"
+          $CLANG -O1 -mllvm -sub -c test/test.c -o /dev/null
+          echo "--- Test: -mllvm -bcf ---"
+          $CLANG -O1 -mllvm -bcf -c test/test.c -o /dev/null
+          echo "--- Test: -mllvm -split ---"
+          $CLANG -O1 -mllvm -split -c test/test.c -o /dev/null
+          echo "--- Test: -mllvm -icall ---"
+          $CLANG -O1 -mllvm -icall -c test/test.c -o /dev/null
+          echo "--- Test: -mllvm -ibr ---"
+          $CLANG -O1 -mllvm -ibr -c test/test.c -o /dev/null
+          echo "--- Test: -mllvm -igv ---"
+          $CLANG -O1 -mllvm -igv -c test/test.c -o /dev/null
+          echo "--- Test: all passes combined ---"
+          $CLANG -O1 -mllvm -sobf -mllvm -fla -mllvm -sub -mllvm -split -mllvm -icall -mllvm -ibr -mllvm -igv -c test/test.c -o /dev/null
+          echo "--- Test: cross-compile aarch64-android ---"
+          NDK_SYSROOT=$ANDROID_HOME/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot
+          $CLANG --target=aarch64-none-linux-android23 --sysroot=$NDK_SYSROOT -O1 -mllvm -sobf -mllvm -fla -mllvm -sub -c test/test.c -o /dev/null
+          echo "=== ALL TESTS PASSED ==="
+
       - name: Package clang binaries
         run: |
           mkdir -p dist
