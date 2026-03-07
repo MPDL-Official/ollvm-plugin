@@ -28,14 +28,14 @@ jobs:
           $NDK_LLVM/bin/clang-19 --version
 
           echo "--- Replacing NDK clang with OLLVM clang ---"
-          cp $NDK_LLVM/bin/clang-19 $NDK_LLVM/bin/clang-19.bak
-          cp /tmp/ollvm-clang/clang-19 $NDK_LLVM/bin/clang-19
-          chmod +x $NDK_LLVM/bin/clang-19
+          sudo cp $NDK_LLVM/bin/clang-19 $NDK_LLVM/bin/clang-19.bak
+          sudo cp /tmp/ollvm-clang/clang-19 $NDK_LLVM/bin/clang-19
+          sudo chmod +x $NDK_LLVM/bin/clang-19
 
           # Copy resource headers if present in the tarball
           if [ -d /tmp/ollvm-clang/clang-resource-include ]; then
             echo "--- Updating clang resource headers ---"
-            cp -r /tmp/ollvm-clang/clang-resource-include/* $NDK_LLVM/lib/clang/19/include/
+            sudo cp -r /tmp/ollvm-clang/clang-resource-include/* $NDK_LLVM/lib/clang/19/include/
           fi
 
           echo "--- Replaced NDK clang ---"
