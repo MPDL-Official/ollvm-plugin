@@ -107,6 +107,7 @@ jobs:
         run: |
           mkdir -p dist
           cp llvm-project/build/bin/clang-19 dist/
+          cp -r llvm-project/build/lib/clang/19/include dist/clang-resource-include
           cd dist
           ln -s clang-19 clang
           ln -s clang-19 clang++
