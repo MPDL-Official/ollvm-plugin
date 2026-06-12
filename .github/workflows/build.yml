@@ -32,7 +32,7 @@ jobs:
         id: llvm-cache
         with:
           path: llvm-project/build
-          key: llvm-build-${{ hashFiles('Obfuscation/**', 'patches/**') }}
+          key: llvm-build-${{ hashFiles('Obfuscation/**', 'patches/**', '.github/workflows/build.yml') }}
 
       - name: Download LLVM 19.1.7 source
         if: steps.llvm-cache.outputs.cache-hit != 'true'
@@ -60,7 +60,7 @@ jobs:
           cmake -G Ninja -B build -S llvm \
             -DLLVM_ENABLE_PROJECTS=clang \
             -DCMAKE_BUILD_TYPE=Release \
-            -DLLVM_TARGETS_TO_BUILD="AArch64;X86" \
+            -DLLVM_TARGETS_TO_BUILD="AArch64;ARM;X86" \
             -DLLVM_BUILD_TOOLS=OFF \
             -DLLVM_BUILD_UTILS=OFF \
             -DLLVM_INCLUDE_TESTS=OFF \
@@ -101,6 +101,8 @@ jobs:
           echo "--- Test: cross-compile aarch64-android ---"
           NDK_SYSROOT=$ANDROID_HOME/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/sysroot
           $CLANG --target=aarch64-none-linux-android23 --sysroot=$NDK_SYSROOT -O1 -mllvm -sobf -mllvm -fla -mllvm -sub -c test/test.c -o /dev/null
+          echo "--- Test: cross-compile armv7-android (32-bit ARM backend) ---"
+          $CLANG --target=armv7-none-linux-androideabi23 --sysroot=$NDK_SYSROOT -march=armv7-a -mthumb -O1 -mllvm -sobf -mllvm -fla -mllvm -sub -c test/test.c -o /dev/null
           echo "=== ALL TESTS PASSED ==="
 
       - name: Package clang binaries

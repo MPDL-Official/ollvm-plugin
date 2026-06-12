@@ -78,5 +78,14 @@ jobs:
             -O1 -mllvm -sobf -mllvm -fla -mllvm -sub \
             -c test/test.c -o /dev/null
 
+      - name: Test armv7-android (32-bit ARM)
+        run: |
+          NDK_LLVM=$ANDROID_HOME/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64
+          $NDK_LLVM/bin/clang --target=armv7-none-linux-androideabi23 \
+            --sysroot=$NDK_LLVM/sysroot \
+            -march=armv7-a -mthumb \
+            -O1 -mllvm -sobf -mllvm -fla -mllvm -sub \
+            -c test/test.c -o /dev/null
+
       - name: Results
         run: echo "=== ALL TESTS PASSED ==="
